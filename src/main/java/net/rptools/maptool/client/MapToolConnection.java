@@ -19,9 +19,13 @@ import java.net.Socket;
 import net.rptools.clientserver.hessian.client.ClientConnection;
 import net.rptools.maptool.model.Player;
 import net.rptools.maptool.server.Handshake;
+import net.rptools.maptool.server.ServerPolicy;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /** @author trevor */
 public class MapToolConnection extends ClientConnection {
+  private static final Logger log = LogManager.getLogger(MapToolConnection.class);
   private final Player player;
 
   public MapToolConnection(String host, int port, Player player) throws IOException {
@@ -34,6 +38,22 @@ public class MapToolConnection extends ClientConnection {
     this.player = player;
   }
 
+  private String version;
+  /** Overrides the version in MapTool.getVerion() to be a specific version */
+  public void SetMapToolVersion(String version) {
+    this.version = version;
+  }
+
+  private ServerPolicy serverPolicy;
+  /**
+   * Gets the policy of the remote server
+   *
+   * @return
+   */
+  public ServerPolicy getServerPolicy() {
+    return serverPolicy;
+  }
+
   /*
    * (non-Javadoc)
    *
@@ -41,19 +61,28 @@ public class MapToolConnection extends ClientConnection {
    */
   @Override
   public boolean sendHandshake(Socket s) throws IOException {
+    log.info("Shaking hands");
+    if (version == null) {
+      version = MapTool.getVersion();
+    }
+    log.info("MapTool version is " + version);
+
     Handshake.Response response =
         Handshake.sendHandshake(
             new Handshake.Request(
-                player.getName(), player.getPassword(), player.getRole(), MapTool.getVersion()),
+                player.getName(), player.getPassword(), player.getRole(), version),
             s);
 
     if (response.code != Handshake.Code.OK) {
-      MapTool.showError("ERROR: " + response.message);
+      log.error("Handshake error: " + response.message);
+      // MapTool.showError("ERROR: " + response.message);
       return false;
     }
+    log.info("Handshake ok");
     boolean result = response.code == Handshake.Code.OK;
     if (result) {
-      MapTool.setServerPolicy(response.policy);
+      // MapTool.setServerPolicy(response.policy);
+      serverPolicy = response.policy;
     }
     return result;
   }
