@@ -1,4 +1,4 @@
-*.java   text diff=java
+*.java   text diff=java eol=lf
 *.html   text diff=html
 *.css    text
 *.js     text
