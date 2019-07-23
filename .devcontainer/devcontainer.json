@@ -1,5 +1,5 @@
 {
-	"name": "Maptool Uplink",
+	"name": "Maptool",
 	"dockerFile": "Dockerfile",
 	"extensions": [
 		"vscjava.vscode-java-pack",
