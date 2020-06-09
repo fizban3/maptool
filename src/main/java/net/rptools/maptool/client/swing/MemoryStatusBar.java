@@ -15,6 +15,7 @@
 package net.rptools.maptool.client.swing;
 
 import java.awt.Dimension;
+import java.awt.FontMetrics;
 import java.awt.event.MouseAdapter;
 import java.text.DecimalFormat;
 import javax.swing.JProgressBar;
@@ -24,10 +25,12 @@ import net.rptools.maptool.util.FileUtil;
 public class MemoryStatusBar extends JProgressBar {
   private static final long serialVersionUID = 1L;
 
-  private static final Dimension minSize = new Dimension(100, 10);
+  private static Dimension minSize;
   private static final DecimalFormat format = new DecimalFormat("#,##0.#");
   private static long largestMemoryUsed = -1;
   private static MemoryStatusBar msb = null;
+
+  private static FontMetrics fm = null;
 
   public static MemoryStatusBar getInstance() {
     if (msb == null) msb = new MemoryStatusBar();
@@ -37,6 +40,13 @@ public class MemoryStatusBar extends JProgressBar {
   private MemoryStatusBar() {
     setMinimum(0);
     setStringPainted(true);
+
+    // Adjust the minimum size to be big enought for the font used
+    // plus a bit extra padding.
+    fm = getFontMetrics(getFont());
+    int w = 26 + fm.stringWidth("9.99 MB/9.99 MB");
+    int h = 4 + fm.getHeight();
+    minSize = new Dimension(w, h);
 
     new Thread() {
       @Override
@@ -81,14 +91,16 @@ public class MemoryStatusBar extends JProgressBar {
     return getMinimumSize();
   }
 
-  public double getLargestMemoryUsed() {
+  /**
+   * Returns the largest memory amount that has been used during running of the program.
+   *
+   * @return Memory size as a long
+   */
+  public long getLargestMemoryUsed() {
     return largestMemoryUsed;
   }
 
   private void update() {
-    // double totalMegs = Runtime.getRuntime().totalMemory() / (1024 * 1024);
-    // double freeMegs = Runtime.getRuntime().freeMemory() / (1024 * 1024);
-
     long totalMemory = Runtime.getRuntime().totalMemory();
     long freeMemory = Runtime.getRuntime().freeMemory();
     long maxMemory = Runtime.getRuntime().maxMemory();
@@ -97,7 +109,6 @@ public class MemoryStatusBar extends JProgressBar {
 
     setMaximum((int) (totalMemory / (1024 * 1024)));
     setValue((int) ((totalMemory - freeMemory) / (1024 * 1024)));
-    // setString(format.format(totalMegs - freeMegs) + "M/" + format.format(totalMegs) + "M");
 
     setString(
         FileUtil.byteCountToDisplaySize((totalMemory - freeMemory))

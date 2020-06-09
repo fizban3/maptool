@@ -27,7 +27,7 @@ import net.rptools.parser.ParserException;
 import net.rptools.parser.function.AbstractFunction;
 
 /**
- * New class extending AbstractFunction to create new "Macro Functions" exportData &
+ * New class extending AbstractFunction to create new "Macro Functions" exportData and
  * getEnvironmentVariable
  *
  * <p>These functions is to allow for easier data exports to external files.
@@ -51,7 +51,7 @@ public class ExportDataFunctions extends AbstractFunction {
   @Override
   public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
       throws ParserException {
-    if (!MapTool.getParser().isMacroPathTrusted())
+    if (!MapTool.getParser().isMacroTrusted())
       throw new ParserException(I18N.getText("macro.function.general.noPerm", functionName));
 
     if (!AppPreferences.getAllowExternalMacroAccess())

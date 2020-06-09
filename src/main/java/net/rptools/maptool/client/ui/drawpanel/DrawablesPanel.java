@@ -147,7 +147,7 @@ public class DrawablesPanel extends JComponent {
       Rectangle drawnBounds = new Rectangle(element.getDrawable().getBounds());
       // Handle pen size
       Pen pen = element.getPen();
-      int penSize = (int) pen.getThickness();
+      int penSize = pen.getForegroundMode() == Pen.MODE_TRANSPARENT ? 0 : (int) pen.getThickness();
       drawnBounds.setRect(
           drawnBounds.getX() - penSize,
           drawnBounds.getY() - penSize,
@@ -156,7 +156,10 @@ public class DrawablesPanel extends JComponent {
       if (bounds == null) bounds = drawnBounds;
       else bounds.add(drawnBounds);
     }
-    if (bounds != null) return bounds;
+    // Fix for Sentry MAPTOOL-20
+    if (bounds != null && bounds.getWidth() > 0 && bounds.getHeight() > 0) {
+      return bounds;
+    }
     return new Rectangle(0, 0, -1, -1);
   }
 }

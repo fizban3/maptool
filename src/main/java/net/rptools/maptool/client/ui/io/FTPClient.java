@@ -15,7 +15,6 @@
 package net.rptools.maptool.client.ui.io;
 
 /** @author crash */
-
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -105,7 +104,7 @@ public class FTPClient {
    * This method may be called by threads other than the EventDispatch thread, so we use <code>
    * SwingUtilities.invokeLater()</code> to handle running it on the AWT EDT.
    *
-   * @param data
+   * @param data the data thet have changed
    */
   protected void fireStateChanged(final Object data) {
     if (SwingUtilities.isEventDispatchThread()) postAllChangeEvents(data);

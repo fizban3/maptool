@@ -21,6 +21,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
+import net.rptools.lib.image.ImageUtil;
 import net.rptools.lib.swing.SwingUtil;
 import net.rptools.maptool.client.ScreenPoint;
 import net.rptools.maptool.model.CellPoint;
@@ -30,7 +31,7 @@ import net.rptools.maptool.model.drawing.LineTemplate;
 import net.rptools.maptool.model.drawing.WallTemplate;
 
 /**
- * A tool to draw a wall template for 4e D&D
+ * A tool to draw a wall template for 4e DnD
  *
  * @author Jay
  */
@@ -44,12 +45,15 @@ public class WallTemplateTool extends BurstTemplateTool {
   public WallTemplateTool() {
     try {
       setIcon(
-          new ImageIcon(
-              ImageIO.read(
-                  getClass()
-                      .getClassLoader()
-                      .getResourceAsStream(
-                          "net/rptools/maptool/client/image/tool/temp-blue-wall.png"))));
+          ImageUtil.resizeImage(
+              new ImageIcon(
+                  ImageIO.read(
+                      getClass()
+                          .getClassLoader()
+                          .getResourceAsStream(
+                              "net/rptools/maptool/client/image/tool/temp-blue-wall.png"))),
+              TOOLBAR_ICON_SIZE,
+              TOOLBAR_ICON_SIZE));
     } catch (IOException ioe) {
       ioe.printStackTrace();
     } // endtry

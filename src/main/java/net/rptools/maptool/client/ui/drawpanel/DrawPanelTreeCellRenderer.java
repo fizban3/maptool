@@ -14,7 +14,6 @@
  */
 package net.rptools.maptool.client.ui.drawpanel;
 
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.io.IOException;
@@ -50,7 +49,6 @@ public class DrawPanelTreeCellRenderer extends DefaultTreeCellRenderer {
       boolean hasFocus) {
 
     setBorder(null);
-    setBackgroundNonSelectionColor(Color.white);
 
     String text = "";
     this.row = row;
@@ -189,13 +187,20 @@ public class DrawPanelTreeCellRenderer extends DefaultTreeCellRenderer {
                         .getClassLoader()
                         .getResourceAsStream(
                             "net/rptools/maptool/client/image/tool/drawpanel-line.png")));
+        case "panel.DrawExplorer.Template.RadiusCellTemplate":
+          return new ImageIcon(
+              ImageIO.read(
+                  getClass()
+                      .getClassLoader()
+                      .getResourceAsStream(
+                          "net/rptools/maptool/client/image/tool/drawpanel-temp-blue-cell-radius.png")));
         case "panel.DrawExplorer.Template.RadiusTemplate":
           return new ImageIcon(
               ImageIO.read(
                   getClass()
                       .getClassLoader()
                       .getResourceAsStream(
-                          "net/rptools/maptool/client/image/tool/drawpanel-temp-blue.png")));
+                          "net/rptools/maptool/client/image/tool/drawpanel-temp-blue-vertex-radius.png")));
         case "panel.DrawExplorer.Template.ConeTemplate":
           return new ImageIcon(
               ImageIO.read(
@@ -209,7 +214,14 @@ public class DrawPanelTreeCellRenderer extends DefaultTreeCellRenderer {
                   getClass()
                       .getClassLoader()
                       .getResourceAsStream(
-                          "net/rptools/maptool/client/image/tool/drawpanel-temp-blue-line.png")));
+                          "net/rptools/maptool/client/image/tool/drawpanel-temp-blue-vertex-line.png")));
+        case "panel.DrawExplorer.Template.LineCellTemplate":
+          return new ImageIcon(
+              ImageIO.read(
+                  getClass()
+                      .getClassLoader()
+                      .getResourceAsStream(
+                          "net/rptools/maptool/client/image/tool/drawpanel-temp-blue-cell-line.png")));
         case "panel.DrawExplorer.Template.BurstTemplate":
           return new ImageIcon(
               ImageIO.read(

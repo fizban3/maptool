@@ -74,6 +74,7 @@ public class StrPropFunctions extends AbstractFunction {
    * @param props has the form "key1=val1 ; key2=val2 ; ..."
    * @param map is populated with the settings. The keys are normalized to upper case.
    * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @param delim is the setting delimiter to use
    */
   public static void parse(
@@ -123,7 +124,12 @@ public class StrPropFunctions extends AbstractFunction {
     }
   }
 
-  /** Prepares a string for use in regex operations. */
+  /**
+   * Prepares a {@code String} for use in regex operations.
+   *
+   * @param s the {@code String} to prepare for regex.
+   * @return a {@code String} prepared for regex.
+   */
   public static String fullyQuoteString(String s) {
     // We escape each non-alphanumeric character in the delimiter string
     StringBuilder sb = new StringBuilder();
@@ -176,11 +182,15 @@ public class StrPropFunctions extends AbstractFunction {
   /**
    * MapTool code: <code>getStrProp(properties, key [, defaultValue [, delim]])</code>
    *
-   * @param key A string to look up
-   * @param defaultValue An optional default returned when <code>key</code> is not found (default is
-   *     <code>""</code>
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return The matching value for <code>key</code>, or <code>""</code> if not found. The value is
    *     converted to a number if possible.
+   * @throws ParserException when an error occurs.
    */
   public Object getStrProp(
       List<Object> parameters,
@@ -221,9 +231,14 @@ public class StrPropFunctions extends AbstractFunction {
    * MapTool code: <code>setStrProp(properties, key, value)</code> - adds or replaces a key's value,
    * respecting the order and case of existing keys.
    *
-   * @param key A string to look up
-   * @param value A string or number to assign to <code>key</code>
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return The new property string.
+   * @throws ParserException when an error occurs.
    */
   public Object setStrProp(
       List<Object> parameters,
@@ -274,8 +289,14 @@ public class StrPropFunctions extends AbstractFunction {
    * MapTool code: <code>deleteStrProp(properties, key)</code> - deletes a key from the properties
    * string.
    *
-   * @param key A string to look up.
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return The new property string. (If <code>key</code> is not found, no changes are made.)
+   * @throws ParserException when an error occurs.
    */
   public Object deleteStrProp(
       List<Object> parameters,
@@ -346,13 +367,13 @@ public class StrPropFunctions extends AbstractFunction {
    * @param parameters list of parameters from the macro call
    * @param lastParam last parameter passed from the macro call (convenience variable)
    * @param props the StrProp string to parse
-   * @param map where the normalized <key,value> pairs are stored (return value)
-   * @param oldKeys list of the original keys from <code>props</code>
-   * @param oldKeysNormalized list of the original keys (converted to uppercase) from <code>props
-   *     </code>
+   * @param map where the normalized {@code <key,value>} pairs are stored (return value)
+   * @param oldKeys list of the original keys from {@code props}
+   * @param oldKeysNormalized list of the original keys (converted to uppercase) from {@code props}
    * @param parser parser object to use as context
    * @return The number of assignments made (keys with spaces in their names are ignored and don't
    *     appear in the count)
+   * @throws ParserException when an error occurs.
    */
   public Object varsFromStrProp(
       List<Object> parameters,
@@ -434,10 +455,16 @@ public class StrPropFunctions extends AbstractFunction {
   /**
    * MapTool code: <code>strPropFromVars(varList, varStyle)</code>.
    *
-   * @param varList A comma-separated list of variable names.
-   * @param varStyle Either "SUFFIXED" or "UNSUFFIXED", indicating how to decorate the variable
-   *     names when fetching values.
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props Either "SUFFIXED" or "UNSUFFIXED", indicating how to decorate the variable names
+   *     when fetching values.
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
+   * @param parser the Maptool parser.
    * @return A property string containing the settings of all the variables.
+   * @throws ParserException when an error occurs.
    */
   public Object strPropFromVars(
       List<Object> parameters,
@@ -451,8 +478,8 @@ public class StrPropFunctions extends AbstractFunction {
     Object retval = null;
     String delim = ";";
 
-    int minParams = 2;
-    int maxParams = minParams + 1;
+    int minParams = 1;
+    int maxParams = 3;
     checkVaryingParameters(
         "strPropFromVars()",
         minParams,
@@ -460,8 +487,8 @@ public class StrPropFunctions extends AbstractFunction {
         parameters,
         new Class[] {String.class, String.class});
     if (parameters.size() == maxParams) delim = lastParam;
+    String varStyleString = parameters.size() > 1 ? parameters.get(1).toString() : "UNSUFFIXED";
 
-    String varStyleString = parameters.get(1).toString();
     int varStyle;
     if (varStyleString.equalsIgnoreCase("SUFFIXED")) {
       varStyle = 0;
@@ -474,13 +501,18 @@ public class StrPropFunctions extends AbstractFunction {
     List<String> varList = new ArrayList<String>();
     StrListFunctions.parse(parameters.get(0).toString(), varList, ",");
     StringBuilder sb = new StringBuilder();
+    int i = 0;
+    int varListSize = varList.size();
     for (String var : varList) {
       String varToGet = (varStyle == 0) ? var + "_" : var;
       sb.append(var);
       sb.append("=");
       String value = parser.getVariable(varToGet).toString();
       sb.append(value);
-      sb.append(" " + delim + " ");
+      i += 1;
+      if (i < varListSize) {
+        sb.append(" " + delim + " ");
+      }
     }
     retval = sb.toString();
     return retval;
@@ -489,7 +521,14 @@ public class StrPropFunctions extends AbstractFunction {
   /**
    * MapTool code: <code>countStrProp(properties)</code>
    *
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return The number of property entries in the string.
+   * @throws ParserException when an error occurs.
    */
   public Object countStrProp(
       List<Object> parameters,
@@ -517,8 +556,14 @@ public class StrPropFunctions extends AbstractFunction {
    * MapTool code: <code>indexKeyStrProp(properties, index)</code> - returns the key at the position
    * given by <code>index</code>.
    *
-   * @param index A number from 0 to (length-1). Ignored if out of range.
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return The key for the setting at position <code>index</code>
+   * @throws ParserException when an error occurs.
    */
   public Object indexKeyStrProp(
       List<Object> parameters,
@@ -555,9 +600,15 @@ public class StrPropFunctions extends AbstractFunction {
    * MapTool code: <code>indexValueStrProp(properties, index)</code> - returns the value at the
    * position given by <code>index</code>.
    *
-   * @param index A number from 0 to (length-1). Ignored if out of range.
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return The value (converted to a number if possible) for the setting at position <code>index
    *     </code>
+   * @throws ParserException when an error occurs.
    */
   public Object indexValueStrProp(
       List<Object> parameters,
@@ -605,11 +656,14 @@ public class StrPropFunctions extends AbstractFunction {
    * MapTool code: <code>formatStrProp(properties, listFormat, entryFormat, separator [, delim])
    * </code> -
    *
-   * @param listFormat Controls overall format of the output, with "%list" where the list goes.
-   * @param itemFormat Controls appearance of each entry, with "%key" and "%value" where the keys
-   *     and values go.
-   * @param separator Placed between each output item.
+   * @param parameters the function parameters
+   * @param lastParam the last parameter
+   * @param props has the form "key1=val1 ; key2=val2 ; ..."
+   * @param map is populated with the settings. The keys are normalized to upper case.
+   * @param oldKeys holds the un-normalized keys, in their original order.
+   * @param oldKeysNormalized an empty array that will contain the normalized keys.
    * @return A string containing the formatted property string.
+   * @throws ParserException when an error occurs.
    */
   public Object formatStrProp(
       List<Object> parameters,
@@ -657,7 +711,13 @@ public class StrPropFunctions extends AbstractFunction {
     return retval;
   }
 
-  /** Tries to convert a string to a number, returning <code>null</code> on failure. */
+  /**
+   * Tries to convert a {@code String} to an {@code Integer}, returning {@code null} on failure.
+   *
+   * @param s the {@code String} to convert.
+   * @return the {@code Integer} value of the {@code String} or {@code null} if it cannot be
+   *     converted.
+   */
   public Integer strToInt(String s) {
     Integer intval = null;
     try { // convert to numeric value if possible
@@ -668,14 +728,26 @@ public class StrPropFunctions extends AbstractFunction {
     return intval;
   }
 
+  /**
+   * @param functionName the name of the function
+   * @param parameters the list of parameters
+   */
   @Override
-  public void checkParameters(List<Object> parameters) throws ParameterException {
-    super.checkParameters(parameters);
+  public void checkParameters(String functionName, List<Object> parameters)
+      throws ParameterException {
+    super.checkParameters(functionName, parameters);
     // The work is done in checkVaryingParameters() instead.
   }
 
   /**
    * Checks number and types of parameters (pass null type to suppress typechecking for that slot).
+   *
+   * @param funcName the name of the function.
+   * @param minParams the minimum number of parameters.
+   * @param maxParams the maximum number of parameters.
+   * @param parameters the parameters to check.
+   * @param expected an array of expected classes.
+   * @throws ParameterException when an error occurs.
    */
   public void checkVaryingParameters(
       String funcName, int minParams, int maxParams, List<Object> parameters, Class<?>[] expected)
@@ -686,8 +758,7 @@ public class StrPropFunctions extends AbstractFunction {
             I18N.getText("macro.function.strLst.incorrectParamExact", funcName, minParams));
       } else {
         throw new ParameterException(
-            I18N.getText(
-                "macro.function.strLst.incorrectParamExact", funcName, minParams, maxParams));
+            I18N.getText("macro.function.strLst.incorrectParam", funcName, minParams, maxParams));
       }
     }
 
@@ -698,7 +769,7 @@ public class StrPropFunctions extends AbstractFunction {
       if (expected[i] != null && !(expected[i].isInstance(parameters.get(i))))
         throw new ParameterException(
             I18N.getText(
-                "macro.function.strLst.incorrectParamExact",
+                "macro.function.strLst.incorrectParamType",
                 funcName,
                 i + 1,
                 expected[i].getSimpleName(),

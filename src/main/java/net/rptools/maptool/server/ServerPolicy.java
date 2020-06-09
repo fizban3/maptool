@@ -14,21 +14,21 @@
  */
 package net.rptools.maptool.server;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 import net.rptools.maptool.client.AppPreferences;
 import net.rptools.maptool.client.MapTool;
-import net.rptools.maptool.client.ui.tokenpanel.InitiativePanel;
 import net.rptools.maptool.client.walker.WalkerMetric;
-import net.sf.json.JSONObject;
 
 public class ServerPolicy {
   private boolean strictTokenMovement;
   private boolean isMovementLocked;
+  private boolean isTokenEditorLocked;
   private boolean playersCanRevealVision;
+  private boolean gmRevealsVisionForUnownedTokens;
   private boolean useIndividualViews;
   private boolean restrictedImpersonation;
   private boolean playersReceiveCampaignMacros;
@@ -37,6 +37,9 @@ public class ServerPolicy {
   private boolean isAutoRevealOnMovement;
   private boolean includeOwnedNPCs = true; // Include Owned NPC Tokens in FoW views
   private WalkerMetric movementMetric;
+
+  private boolean useAstarPathfinding = AppPreferences.isUsingAstarPathfinding();
+  private boolean vblBlocksMove = AppPreferences.getVblBlocksMove();
 
   public ServerPolicy() {
     // Default tool tip usage for inline rolls to user preferences.
@@ -48,7 +51,7 @@ public class ServerPolicy {
   /**
    * Whether token management can be done by everyone or only the GM and assigned tokens
    *
-   * @return
+   * @return true if tokens only can be handled by GM and assignee
    */
   public boolean useStrictTokenManagement() {
     return strictTokenMovement;
@@ -66,12 +69,28 @@ public class ServerPolicy {
     isMovementLocked = locked;
   }
 
+  public boolean isTokenEditorLocked() {
+    return isTokenEditorLocked;
+  }
+
+  public void setIsTokenEditorLocked(boolean locked) {
+    isTokenEditorLocked = locked;
+  }
+
   public void setPlayersCanRevealVision(boolean flag) {
     playersCanRevealVision = flag;
   }
 
   public boolean getPlayersCanRevealVision() {
     return playersCanRevealVision;
+  }
+
+  public void setGmRevealsVisionForUnownedTokens(boolean flag) {
+    gmRevealsVisionForUnownedTokens = flag;
+  }
+
+  public boolean getGmRevealsVisionForUnownedTokens() {
+    return gmRevealsVisionForUnownedTokens;
   }
 
   public void setAutoRevealOnMovement(boolean revealFlag) {
@@ -120,13 +139,18 @@ public class ServerPolicy {
    * Gets if ToolTips should be used instead of extended output for [ ] rolls with no formatting
    * option.
    *
-   * @returns true if tool tips should be used.
+   * @return true if tool tips should be used.
    */
   public boolean getUseToolTipsForDefaultRollFormat() {
     return useToolTipsForDefaultRollFormat;
   }
 
-  /** Gets the local server time */
+  /**
+   * Gets the local server time
+   *
+   * @return the current server time as the difference, measured in milliseconds, between the now
+   *     and midnight, January 1, 1970 UTC
+   */
   public long getSystemTime() {
     return System.currentTimeMillis();
   }
@@ -167,43 +191,73 @@ public class ServerPolicy {
     this.includeOwnedNPCs = includeOwnedNPCs;
   }
 
+  public boolean isUsingAstarPathfinding() {
+    return useAstarPathfinding;
+  }
+
+  public void setUseAstarPathfinding(boolean useAstarPathfinding) {
+    this.useAstarPathfinding = useAstarPathfinding;
+  }
+
+  public boolean getVblBlocksMove() {
+    return vblBlocksMove;
+  }
+
+  public void setVblBlocksMove(boolean vblBlocksMove) {
+    this.vblBlocksMove = vblBlocksMove;
+  }
+
   /**
    * Retrieves the server side preferences as a json object.
    *
    * @return the server side preferences
    */
-  public JSONObject toJSON() {
-    Map<String, Object> sinfo = new HashMap<String, Object>();
+  public JsonObject toJSON() {
+    JsonObject sinfo = new JsonObject();
 
-    sinfo.put(
+    sinfo.addProperty(
         "tooltips for default roll format",
         getUseToolTipsForDefaultRollFormat() ? BigDecimal.ONE : BigDecimal.ZERO);
-    sinfo.put("players can reveal", getPlayersCanRevealVision() ? BigDecimal.ONE : BigDecimal.ZERO);
-    sinfo.put("movement locked", isMovementLocked() ? BigDecimal.ONE : BigDecimal.ZERO);
-    sinfo.put(
+    sinfo.addProperty(
+        "GM reveals vision for unowned tokens",
+        getGmRevealsVisionForUnownedTokens() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty(
+        "players can reveal", getPlayersCanRevealVision() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty(
+        "auto reveal on movement", isAutoRevealOnMovement() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty("movement locked", isMovementLocked() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty(
+        "token editor locked", isTokenEditorLocked() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty(
         "restricted impersonation", isRestrictedImpersonation() ? BigDecimal.ONE : BigDecimal.ZERO);
-    sinfo.put("individual views", isUseIndividualViews() ? BigDecimal.ONE : BigDecimal.ZERO);
-    sinfo.put(
+    sinfo.addProperty(
+        "individual views", isUseIndividualViews() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty("individual fow", isUseIndividualFOW() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty(
         "strict token management", useStrictTokenManagement() ? BigDecimal.ONE : BigDecimal.ZERO);
-    sinfo.put(
+    sinfo.addProperty(
         "players receive campaign macros",
         playersReceiveCampaignMacros() ? BigDecimal.ONE : BigDecimal.ZERO);
 
     WalkerMetric metric =
         MapTool.isPersonalServer() ? AppPreferences.getMovementMetric() : getMovementMetric();
-    sinfo.put("movement metric", metric.toString());
+    sinfo.addProperty("movement metric", metric.toString());
 
-    sinfo.put("timeInMs", getSystemTime());
-    sinfo.put("timeDate", getTimeDate());
+    sinfo.addProperty("using ai", isUsingAstarPathfinding() ? BigDecimal.ONE : BigDecimal.ZERO);
+    sinfo.addProperty("vbl blocks movement", getVblBlocksMove() ? BigDecimal.ONE : BigDecimal.ZERO);
 
-    sinfo.put("gm", MapTool.getGMs());
+    sinfo.addProperty("timeInMs", getSystemTime());
+    sinfo.addProperty("timeDate", getTimeDate());
 
-    InitiativePanel ip = MapTool.getFrame().getInitiativePanel();
-    if (ip != null) {
-      sinfo.put(
-          "initiative owner permissions",
-          ip.isOwnerPermissions() ? BigDecimal.ONE : BigDecimal.ZERO);
+    JsonArray gms = new JsonArray();
+
+    for (String gm : MapTool.getGMs()) {
+      gms.add(gm);
     }
-    return JSONObject.fromObject(sinfo);
+    sinfo.add("gm", gms);
+    sinfo.addProperty(
+        "hosting server", MapTool.isHostingServer() ? BigDecimal.ONE : BigDecimal.ZERO);
+
+    return sinfo;
   }
 }

@@ -415,7 +415,7 @@ public class CampaignProperties {
     return initiativeMovementLock;
   }
 
-  /** @param initiativeOwnerPermissions Setter for initiativeMovementLock */
+  /** @param initiativeMovementLock Setter for initiativeMovementLock */
   public void setInitiativeMovementLock(boolean initiativeMovementLock) {
     this.initiativeMovementLock = initiativeMovementLock;
   }
@@ -423,6 +423,8 @@ public class CampaignProperties {
   /**
    * Getter for characterSheets. Only called by {@link Campaign#getCharacterSheets()} and that
    * function is never used elsewhere within MapTool. Yet. ;-)
+   *
+   * @return a Map of the characterSheets
    */
   public Map<String, String> getCharacterSheets() {
     if (characterSheets == null) initCharacterSheetsMap();

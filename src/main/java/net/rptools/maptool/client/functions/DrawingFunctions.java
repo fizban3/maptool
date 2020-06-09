@@ -14,6 +14,11 @@
  */
 package net.rptools.maptool.client.functions;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import java.awt.Point;
+import java.awt.geom.PathIterator;
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
 import net.rptools.lib.MD5Key;
@@ -24,13 +29,17 @@ import net.rptools.maptool.language.I18N;
 import net.rptools.maptool.model.GUID;
 import net.rptools.maptool.model.Zone;
 import net.rptools.maptool.model.Zone.Layer;
+import net.rptools.maptool.model.drawing.AbstractDrawing;
 import net.rptools.maptool.model.drawing.Drawable;
 import net.rptools.maptool.model.drawing.DrawableColorPaint;
 import net.rptools.maptool.model.drawing.DrawablePaint;
 import net.rptools.maptool.model.drawing.DrawableTexturePaint;
 import net.rptools.maptool.model.drawing.DrawablesGroup;
 import net.rptools.maptool.model.drawing.DrawnElement;
+import net.rptools.maptool.model.drawing.LineSegment;
 import net.rptools.maptool.model.drawing.Pen;
+import net.rptools.maptool.model.drawing.ShapeDrawable;
+import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
 import net.rptools.parser.function.AbstractFunction;
@@ -53,7 +62,6 @@ public class DrawingFunctions extends AbstractFunction {
    *
    * @param map the zone that should contain the drawing
    * @param guid the id of the drawing.
-   * @throws ParserException if there were more or less parameters than allowed
    */
   protected void bringToFront(Zone map, GUID guid) {
     List<DrawnElement> drawableList = map.getAllDrawnElements();
@@ -90,30 +98,6 @@ public class DrawingFunctions extends AbstractFunction {
   }
 
   /**
-   * Checks that the number of objects in the list <code>parameters</code> is within given bounds
-   * (inclusive). Throws a <code>ParserException</code> if the check fails.
-   *
-   * @param functionName this is used in the exception message
-   * @param parameters a list of parameters
-   * @param min the minimum amount of parameters (inclusive)
-   * @param max the maximum amount of parameters (inclusive)
-   * @throws ParserException if there were more or less parameters than allowed
-   */
-  protected void checkNumberOfParameters(
-      String functionName, List<Object> parameters, int min, int max) throws ParserException {
-    int numberOfParameters = parameters.size();
-    if (numberOfParameters < min) {
-      throw new ParserException(
-          I18N.getText(
-              "macro.function.general.notEnoughParam", functionName, min, numberOfParameters));
-    } else if (numberOfParameters > max) {
-      throw new ParserException(
-          I18N.getText(
-              "macro.function.general.tooManyParam", functionName, max, numberOfParameters));
-    }
-  }
-
-  /**
    * Checks whether or not the function is trusted
    *
    * @param functionName Name of the macro function
@@ -132,6 +116,7 @@ public class DrawingFunctions extends AbstractFunction {
    * @param functionName this is used in the exception message
    * @param map the zone that should contain the drawing
    * @param guid the id of the drawing.
+   * @return the {@link Drawable} requested.
    * @throws ParserException if the drawing is not found.
    */
   protected Drawable getDrawable(String functionName, Zone map, GUID guid) throws ParserException {
@@ -291,18 +276,112 @@ public class DrawingFunctions extends AbstractFunction {
   }
 
   /**
+   * Converts the selected drawing element into a JSON string.
+   *
+   * @param functionName this is used in the exception message
+   * @param map the zone that should contain the drawing
+   * @param guid the id of the drawing.
+   * @return JSON in String form.
+   * @throws ParserException if the drawable is not found.
+   */
+  protected JsonObject getDrawingJSONInfo(String functionName, Zone map, GUID guid)
+      throws ParserException {
+    DrawnElement el = getDrawnElement(functionName, map, guid);
+    AbstractDrawing d = (AbstractDrawing) el.getDrawable();
+    JsonObject dinfo = new JsonObject();
+    dinfo.addProperty("id", el.getDrawable().getId().toString());
+    dinfo.addProperty("name", d.getName());
+    dinfo.addProperty("layer", el.getDrawable().getLayer().toString());
+    dinfo.addProperty("type", getDrawbleType(d));
+    dinfo.add("bounds", boundsToJSON(d));
+    dinfo.addProperty("penColor", paintToString(el.getPen().getPaint()));
+    dinfo.addProperty("fillColor", paintToString(el.getPen().getBackgroundPaint()));
+    dinfo.addProperty("opacity", el.getPen().getOpacity());
+    dinfo.addProperty("isEraser", el.getPen().isEraser() ? BigDecimal.ONE : BigDecimal.ZERO);
+    dinfo.addProperty("penWidth", el.getPen().getThickness());
+    dinfo.add("path", pathToJSON(d));
+
+    return dinfo;
+  }
+
+  private JsonObject boundsToJSON(AbstractDrawing d) {
+    JsonObject binfo = new JsonObject();
+    binfo.addProperty("x", d.getBounds().x);
+    binfo.addProperty("y", d.getBounds().y);
+    binfo.addProperty("width", d.getBounds().width);
+    binfo.addProperty("height", d.getBounds().height);
+    return binfo;
+  }
+
+  private String getDrawbleType(AbstractDrawing d) {
+    if (d instanceof LineSegment) {
+      return "Line";
+    } else if (d instanceof ShapeDrawable) {
+      String shape = ((ShapeDrawable) d).getShape().getClass().getSimpleName();
+      if ("Float".equalsIgnoreCase(shape)) {
+        return "Oval";
+      } else {
+        return shape;
+      }
+    } else if (d instanceof DrawablesGroup) {
+      return "Group";
+    } else {
+      return "unknown";
+    }
+  }
+
+  private JsonArray pathToJSON(AbstractDrawing d) {
+    if (d instanceof LineSegment) {
+      JsonArray pinfo = new JsonArray();
+      LineSegment line = (LineSegment) d;
+      for (Point point : line.getPoints()) {
+        JsonObject info = new JsonObject();
+        info.addProperty("x", point.x);
+        info.addProperty("y", point.y);
+        pinfo.add(info);
+      }
+      return pinfo;
+    } else if (d instanceof ShapeDrawable) {
+      String shape = ((ShapeDrawable) d).getShape().getClass().getSimpleName();
+      if ("Float".equalsIgnoreCase(shape)) {
+        return new JsonArray();
+      } else {
+        // Convert shape into path
+        JsonArray pinfo = new JsonArray();
+        final PathIterator pathIter = ((ShapeDrawable) d).getShape().getPathIterator(null);
+        float[] coords = new float[6];
+        JsonObject lastinfo = new JsonObject();
+        while (!pathIter.isDone()) {
+          pathIter.currentSegment(coords);
+          JsonObject info = new JsonObject();
+          info.addProperty("x", coords[0]);
+          info.addProperty("y", coords[1]);
+          if (!info.equals(lastinfo)) {
+            pinfo.add(info);
+          }
+          lastinfo = info;
+          pathIter.next();
+        }
+        return pinfo;
+      }
+    }
+    return new JsonArray();
+  }
+
+  /**
    * Parses a string to a boolean. Throws a <code>ParserException</code> if the drawing is not
    * found.
    *
    * @param functionName this is used in the exception message.
    * @param args List of parameters passed to the function.
    * @param param int reference to the boolean parameter.
+   * @return the boolean equivalent to the passed in argument.
    * @throws ParserException if the parameter fails to parse.
    */
   protected boolean parseBoolean(String functionName, List<Object> args, int param)
       throws ParserException {
     try {
-      return AbstractTokenAccessorFunction.getBooleanValue(args.get(param));
+      return FunctionUtil.getBooleanValue(args.get(param));
     } catch (NumberFormatException ne) {
       throw new ParserException(
           I18N.getText(

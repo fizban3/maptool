@@ -127,7 +127,7 @@ public class AssetManager {
    * done loading.
    *
    * @param key MD5Key of the asset
-   * @param listener Listener to notify when the asset is done loading
+   * @param listeners Listener to notify when the asset is done loading
    */
   public static void addAssetListener(MD5Key key, AssetAvailableListener... listeners) {
 
@@ -180,8 +180,8 @@ public class AssetManager {
    * Determine if the asset manager has the asset. This does not tell you if the asset is done
    * downloading.
    *
-   * @param key
-   * @return
+   * @param key the key
+   * @return true if the asset manager has the key
    */
   public static boolean hasAsset(MD5Key key) {
     return assetMap.containsKey(key)
@@ -193,7 +193,7 @@ public class AssetManager {
    * Determines if the asset data is in memory.
    *
    * @param key MD5 sum associated with asset
-   * @return True if hte asset is loaded, false otherwise
+   * @return True if the asset is loaded, false otherwise
    */
   public static boolean hasAssetInMemory(MD5Key key) {
     return assetMap.containsKey(key);
@@ -234,6 +234,10 @@ public class AssetManager {
 
   /**
    * Similar to getAsset(), but does not block. It will always use the listeners to pass the data
+   *
+   * @param id MD5 of the asset requested
+   * @param listeners instances of {@link AssetAvailableListener} that will be notified when the
+   *     asset is available
    */
   public static void getAssetAsynchronously(
       final MD5Key id, final AssetAvailableListener... listeners) {
@@ -351,7 +355,7 @@ public class AssetManager {
    * caution!
    *
    * @param id MD5 of the asset to load from the server
-   * @return
+   * @return Asset from the server
    */
   public static Asset requestAssetFromServer(MD5Key id) {
 
@@ -406,7 +410,7 @@ public class AssetManager {
    *
    * @param file File to use for asset
    * @return Asset associated with the file
-   * @throws IOException
+   * @throws IOException in case of an I/O error
    */
   public static Asset createAsset(File file) throws IOException {
     return new Asset(FileUtil.getNameWithoutExtension(file), FileUtils.readFileToByteArray(file));
@@ -415,9 +419,9 @@ public class AssetManager {
   /**
    * Create an asset from a file.
    *
-   * @param file File to use for asset
+   * @param url File to use for asset
    * @return Asset associated with the file
-   * @throws IOException
+   * @throws IOException in case of an I/O error
    */
   public static Asset createAsset(URL url) throws IOException {
     // Create a temporary file from the downloaded URL
@@ -546,7 +550,8 @@ public class AssetManager {
    * field from the AssetPanel the option of searching through all directories and not just the
    * current one. FJE
    *
-   * @param image
+   * @param image the file to be stored
+   * @throws IOException in case of an I/O error
    */
   public static void rememberLocalImageReference(File image) throws IOException {
 
@@ -610,7 +615,7 @@ public class AssetManager {
    *
    * @param id MD5 sum of the asset
    * @return True if asset is in the persistent cache, false otherwise
-   * @see assetIsInPersistentCache(Asset asset)
+   * @see this#assetIsInPersistentCache(Asset)
    */
   private static boolean assetIsInPersistentCache(MD5Key id) {
 
@@ -630,9 +635,9 @@ public class AssetManager {
   /**
    * Return the assets cache file, if any
    *
-   * @param is MD5 sum of the asset
+   * @param id MD5 sum of the asset
    * @return The assets cache file, or null if it doesn't have one
-   * @see getAssetCacheFile(Asset asset)
+   * @see AssetManager#getAssetCacheFile(Asset asset)
    */
   public static File getAssetCacheFile(MD5Key id) {
     return new File(cacheDir.getAbsolutePath() + File.separator + id);
@@ -653,7 +658,7 @@ public class AssetManager {
    *
    * @param id MD5 sum of the asset
    * @return File - The assets info file, or null if it doesn't have one
-   * @see getAssetInfoFile(Asset asset)
+   * @see this@getAssetInfoFile(Asset asset)
    */
   private static File getAssetInfoFile(MD5Key id) {
     return new File(cacheDir.getAbsolutePath() + File.separator + id + ".info");

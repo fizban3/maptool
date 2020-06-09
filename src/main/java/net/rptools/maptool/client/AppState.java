@@ -17,6 +17,8 @@ package net.rptools.maptool.client;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.io.File;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,6 +32,7 @@ public class AppState {
   private static boolean linkPlayerViews = false;
   private static boolean useDoubleWideLine = true;
   private static boolean showMovementMeasurements = true;
+  private static boolean showTextLabels = true;
   private static boolean enforceNotification = false;
   private static File campaignFile;
   private static int gridSize = 1;
@@ -38,8 +41,8 @@ public class AppState {
   private static boolean zoomLocked = false;
 
   private static boolean collectProfilingData = false;
-  private static boolean isSaving = false;
-  private static boolean isLoading = false;
+  private static boolean isLoggingToConsole = false;
+  private static boolean isLockedForBackgroundTask = false;
 
   private static PropertyChangeSupport changeSupport = new PropertyChangeSupport(AppState.class);
 
@@ -58,6 +61,14 @@ public class AppState {
 
   public static void setCollectProfilingData(boolean flag) {
     collectProfilingData = flag;
+  }
+
+  public static boolean isLoggingToConsole() {
+    return isLoggingToConsole;
+  }
+
+  public static void setLoggingToConsole(boolean flag) {
+    isLoggingToConsole = flag;
   }
 
   public static int getGridSize() {
@@ -128,12 +139,36 @@ public class AppState {
     AppState.campaignFile = campaignFile;
   }
 
+  /**
+   * Returns the campaign name (without extension) from the campaign file. If no campaign file is
+   * defined, instead returns "Default".
+   *
+   * @return The string containing the campaign name
+   */
+  public static String getCampaignName() {
+    if (AppState.campaignFile == null) {
+      return "Default";
+    } else {
+      String s = AppState.campaignFile.getName();
+      // remove the file extension of the campaign file name
+      return s.substring(0, s.length() - AppConstants.CAMPAIGN_FILE_EXTENSION.length());
+    }
+  }
+
   public static void setShowMovementMeasurements(boolean show) {
     showMovementMeasurements = show;
   }
 
   public static boolean getShowMovementMeasurements() {
     return showMovementMeasurements;
+  }
+
+  public static void setShowTextLabels(boolean show) {
+    showTextLabels = show;
+  }
+
+  public static boolean getShowTextLabels() {
+    return showTextLabels;
   }
 
   public static boolean isShowAsPlayer() {
@@ -152,23 +187,25 @@ public class AppState {
     showLightSources = show;
   }
 
-  public static synchronized void setIsLoading(boolean loading) {
-    isLoading = loading;
+  private static ReentrantLock backgroundTaskLock = new ReentrantLock();
+
+  public static boolean testBackgroundTaskLock() {
+    return backgroundTaskLock.isLocked();
   }
 
-  public static synchronized boolean isLoading() {
-    return isLoading;
+  public static class FailedToAcquireLockException extends Exception {}
+
+  public static void acquireBackgroundTaskLock(int waitSeconds)
+      throws FailedToAcquireLockException {
+    try {
+      if (backgroundTaskLock.tryLock(waitSeconds, TimeUnit.SECONDS)) return;
+    } catch (InterruptedException ie) {
+    }
+    throw new FailedToAcquireLockException();
   }
 
-  public static synchronized void setIsSaving(boolean saving) {
-    if (log.isDebugEnabled())
-      log.debug("AppState.isSaving was " + isSaving + "; setting to " + saving); // $NON-NLS-1$
-    isSaving = saving;
-  }
-
-  public static synchronized boolean isSaving() {
-    if (log.isDebugEnabled()) log.debug("AppState.isSaving is " + isSaving); // $NON-NLS-1$
-    return isSaving;
+  public static void releaseBackgroundTaskLock() {
+    backgroundTaskLock.unlock();
   }
 
   public static boolean isNotificationEnforced() {

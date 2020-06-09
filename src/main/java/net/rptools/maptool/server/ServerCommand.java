@@ -30,6 +30,7 @@ import net.rptools.maptool.model.Pointer;
 import net.rptools.maptool.model.TextMessage;
 import net.rptools.maptool.model.Token;
 import net.rptools.maptool.model.Zone;
+import net.rptools.maptool.model.Zone.TopologyMode;
 import net.rptools.maptool.model.Zone.VisionType;
 import net.rptools.maptool.model.ZonePoint;
 import net.rptools.maptool.model.drawing.Drawable;
@@ -41,6 +42,7 @@ public interface ServerCommand {
     // @formatter:off
     bootPlayer,
     setCampaign,
+    setCampaignName,
     getZone,
     putZone,
     removeZone,
@@ -48,12 +50,17 @@ public interface ServerCommand {
     getAsset,
     removeAsset,
     putToken,
+    editToken,
     removeToken,
+    removeTokens,
+    updateTokenProperty,
     draw,
     updateDrawing,
     clearAllDrawings,
     setZoneGridSize,
     message,
+    execLink,
+    execFunction,
     undoDraw,
     showPointer,
     movePointer,
@@ -83,6 +90,7 @@ public interface ServerCommand {
     updateTokenInitiative,
     setVisionType,
     updateCampaignMacros,
+    updateGmMacros,
     setTokenLocation, // NOTE: This is to support third party token placement and shouldn't be
     // depended on for general purpose token movement
     setLiveTypingLabel, // Experimental
@@ -106,15 +114,17 @@ public interface ServerCommand {
 
   public void setFoW(GUID zoneGUID, Area area, Set<GUID> selectedToks);
 
-  public void addTopology(GUID zoneGUID, Area area);
+  public void addTopology(GUID zoneGUID, Area area, TopologyMode topologyMode);
 
-  public void removeTopology(GUID zoneGUID, Area area);
+  public void removeTopology(GUID zoneGUID, Area area, TopologyMode topologyMode);
 
   public void enforceZoneView(GUID zoneGUID, int x, int y, double scale, int width, int height);
 
   public void restoreZoneView(GUID zoneGUID);
 
   public void setCampaign(Campaign campaign);
+
+  public void setCampaignName(String name);
 
   public void getZone(GUID zoneGUID);
 
@@ -130,9 +140,30 @@ public interface ServerCommand {
 
   public void removeAsset(MD5Key assetID);
 
+  public void editToken(GUID zoneGUID, Token token);
+
   public void putToken(GUID zoneGUID, Token token);
 
+  /**
+   * Removes a token from a zone.
+   *
+   * @param zoneGUID the ID of the zone
+   * @param tokenGUID the ID of the token
+   */
   public void removeToken(GUID zoneGUID, GUID tokenGUID);
+
+  /**
+   * Removes a list of tokens from a zone.
+   *
+   * @param zoneGUID the ID of the zone
+   * @param tokenGUIDs the list of IDs of the tokens
+   */
+  public void removeTokens(GUID zoneGUID, List<GUID> tokenGUIDs);
+
+  public void updateTokenProperty(
+      GUID zoneGUID, GUID tokenGUID, Token.Update update, Object[] parameters);
+
+  public void updateTokenProperty(Token token, Token.Update update, Object... parameters);
 
   public void putLabel(GUID zoneGUID, Label label);
 
@@ -147,6 +178,10 @@ public interface ServerCommand {
   public void setZoneGridSize(GUID zoneGUID, int xOffset, int yOffset, int size, int color);
 
   public void message(TextMessage message);
+
+  public void execFunction(String target, String source, String functionName, List<Object> args);
+
+  public void execLink(String link, String target, String source);
 
   public void showPointer(String player, Pointer pointer);
 
@@ -187,6 +222,8 @@ public interface ServerCommand {
 
   public void updateCampaignMacros(List<MacroButtonProperties> properties);
 
+  public void updateGmMacros(List<MacroButtonProperties> properties);
+
   public void setBoard(GUID zoneGUID, MD5Key mapAsset, int X, int Y);
 
   public void setLiveTypingLabel(String name, boolean show);
@@ -198,5 +235,5 @@ public interface ServerCommand {
   public void updateExposedAreaMeta(
       GUID zoneGUID, GUID tokenExposedAreaGUID, ExposedAreaMetaData meta);
 
-  public void clearExposedArea(GUID zoneGUID);
+  public void clearExposedArea(GUID zoneGUID, boolean globalOnly);
 }

@@ -87,7 +87,7 @@ public class AssetLoader {
    * corrupted by the caller.
    *
    * @param repo the name of the repository, probably from the campaign properties
-   * @return an immutable <code>Map&lt;String, String></code>
+   * @return an immutable {@code Map<String, String>}
    */
   public Map<String, String> getRepositoryMap(String repo) {
     return repositoryMap.get(repo);
@@ -101,10 +101,10 @@ public class AssetLoader {
    * store it into the cache.
    *
    * <p>Once the index file has been located, {@link #parseIndex(List)} is called to convert the
-   * text file into a <code>Map&lt;String, Sting></code> for the return value.
+   * text file into a {@code Map<String, String>} for the return value.
    *
-   * @param repository
-   * @return
+   * @param repository repository to extract the map from
+   * @return the extracted map
    */
   protected Map<String, String> getIndexMap(String repository) {
     RepoState status = RepoState.ACTIVE;
@@ -172,8 +172,8 @@ public class AssetLoader {
    * Converts the specified repository of assets into an index file that can be uploaded and used as
    * the <b>index.gz</b> (after being compressed, of course).
    *
-   * @param repository
-   * @return
+   * @param repository the repository to create index for
+   * @return a byte array with the content of the index file
    */
   protected byte[] createIndexFile(String repository) {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();

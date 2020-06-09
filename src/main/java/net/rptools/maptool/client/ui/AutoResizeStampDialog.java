@@ -15,6 +15,7 @@
 package net.rptools.maptool.client.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dialog;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -48,8 +49,12 @@ public class AutoResizeStampDialog extends JDialog {
   /**
    * Create the dialog.
    *
-   * @param selectedWidth
-   * @param selectedHeight
+   * @param selectedWidth the currently selected width
+   * @param selectedHeight the currently selected height
+   * @param stampWidth the width in the label
+   * @param stampHeight the height in the label
+   * @param anchorX the x anchor point
+   * @param anchorY the y anchor point
    */
   public AutoResizeStampDialog(
       int selectedWidth,
@@ -71,12 +76,12 @@ public class AutoResizeStampDialog extends JDialog {
 
     setModal(true);
     setResizable(false);
-    setModalExclusionType(ModalExclusionType.APPLICATION_EXCLUDE);
+    setModalExclusionType(Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
     setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     setAlwaysOnTop(true);
-    setModalityType(ModalityType.APPLICATION_MODAL);
+    setModalityType(Dialog.ModalityType.APPLICATION_MODAL);
     setTitle("Automatically Resize Stamp");
-    setBounds(100, 100, 450, 200);
+    //    setBounds(100, 100, 450, 200);
     getContentPane().setLayout(new BorderLayout());
     contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
     getContentPane().add(contentPanel, BorderLayout.CENTER);
@@ -144,7 +149,7 @@ public class AutoResizeStampDialog extends JDialog {
                             .addComponent(
                                 chckbxAdjustVerticalAnchor,
                                 GroupLayout.PREFERRED_SIZE,
-                                149,
+                                GroupLayout.DEFAULT_SIZE,
                                 GroupLayout.PREFERRED_SIZE))
                     .addGap(18)
                     .addGroup(
@@ -200,9 +205,9 @@ public class AutoResizeStampDialog extends JDialog {
                                             .addComponent(lblPx)
                                             .addComponent(
                                                 lblPx2,
-                                                GroupLayout.PREFERRED_SIZE,
-                                                12,
-                                                GroupLayout.PREFERRED_SIZE)))
+                                                GroupLayout.DEFAULT_SIZE,
+                                                GroupLayout.DEFAULT_SIZE,
+                                                24)))
                             .addGroup(
                                 gl_contentPanel
                                     .createParallelGroup(Alignment.LEADING)
@@ -217,9 +222,9 @@ public class AutoResizeStampDialog extends JDialog {
                                             .addPreferredGap(ComponentPlacement.RELATED)
                                             .addComponent(
                                                 lblPx3,
-                                                GroupLayout.PREFERRED_SIZE,
-                                                12,
-                                                GroupLayout.PREFERRED_SIZE))
+                                                GroupLayout.DEFAULT_SIZE,
+                                                GroupLayout.DEFAULT_SIZE,
+                                                24))
                                     .addGroup(
                                         gl_contentPanel
                                             .createSequentialGroup()
@@ -231,9 +236,9 @@ public class AutoResizeStampDialog extends JDialog {
                                             .addPreferredGap(ComponentPlacement.RELATED)
                                             .addComponent(
                                                 lblPx4,
-                                                GroupLayout.PREFERRED_SIZE,
-                                                12,
-                                                GroupLayout.PREFERRED_SIZE))))
+                                                GroupLayout.DEFAULT_SIZE,
+                                                GroupLayout.DEFAULT_SIZE,
+                                                24))))
                     .addContainerGap(69, Short.MAX_VALUE))
             .addGroup(
                 Alignment.TRAILING,
@@ -368,6 +373,7 @@ public class AutoResizeStampDialog extends JDialog {
         buttonPane.add(cancelButton);
       }
     }
+    pack();
   }
 
   public int getCellWidthSelected() {

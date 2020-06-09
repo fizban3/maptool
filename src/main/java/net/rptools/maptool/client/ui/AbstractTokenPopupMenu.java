@@ -16,7 +16,6 @@ package net.rptools.maptool.client.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Cursor;
-import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
@@ -54,7 +53,6 @@ import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.tool.FacingTool;
 import net.rptools.maptool.client.tool.PointerTool;
 import net.rptools.maptool.client.tool.StampTool;
-import net.rptools.maptool.client.ui.token.EditTokenDialog;
 import net.rptools.maptool.client.ui.zone.ZoneRenderer;
 import net.rptools.maptool.language.I18N;
 import net.rptools.maptool.model.Direction;
@@ -113,7 +111,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   protected class ShowHandoutAction extends AbstractAction {
     public ShowHandoutAction() {
-      putValue(Action.NAME, "Show Handout");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.showHandout"));
       setEnabled(getTokenUnderMouse().getCharsheetImage() != null);
     }
 
@@ -128,7 +126,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
   }
 
   protected JMenu createLightSourceMenu() {
-    JMenu menu = new JMenu("Light Source");
+    JMenu menu = new JMenu(I18N.getText("panel.MapExplorer.View.LIGHT_SOURCES"));
 
     if (tokenUnderMouse.hasLightSources()) {
       menu.add(new ClearLightAction());
@@ -183,12 +181,12 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
   }
 
   protected JMenu createFlipMenu() {
-    JMenu flipMenu = new JMenu("Flip");
+    JMenu flipMenu = new JMenu(I18N.getText("token.popup.menu.flip"));
 
     flipMenu.add(
         new AbstractAction() {
           {
-            putValue(NAME, "Horizontal");
+            putValue(NAME, I18N.getText("token.popup.menu.flip.horizontal"));
           }
 
           public void actionPerformed(ActionEvent e) {
@@ -207,7 +205,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
     flipMenu.add(
         new AbstractAction() {
           {
-            putValue(NAME, "Vertical");
+            putValue(NAME, I18N.getText("token.popup.menu.flip.vertical"));
           }
 
           public void actionPerformed(ActionEvent e) {
@@ -226,7 +224,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
     flipMenu.add(
         new AbstractAction() {
           {
-            putValue(NAME, "Isometric Plane");
+            putValue(NAME, I18N.getText("token.popup.menu.flip.isometric"));
           }
 
           public void actionPerformed(ActionEvent e) {
@@ -246,7 +244,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
   }
 
   protected JMenu createChangeToMenu(Zone.Layer... types) {
-    JMenu changeTypeMenu = new JMenu("Change to");
+    JMenu changeTypeMenu = new JMenu(I18N.getText("token.popup.menu.change"));
     for (Zone.Layer layer : types) {
       changeTypeMenu.add(new JMenuItem(new ChangeTypeAction(layer)));
     }
@@ -254,11 +252,11 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
   }
 
   protected JMenu createArrangeMenu() {
-    JMenu arrangeMenu = new JMenu("Arrange");
-    JMenuItem bringToFrontMenuItem = new JMenuItem("Bring to Front");
+    JMenu arrangeMenu = new JMenu(I18N.getText("token.popup.menu.arrange"));
+    JMenuItem bringToFrontMenuItem = new JMenuItem(I18N.getText("token.popup.menu.zorder.front"));
     bringToFrontMenuItem.addActionListener(new BringToFrontAction());
 
-    JMenuItem sendToBackMenuItem = new JMenuItem("Send to Back");
+    JMenuItem sendToBackMenuItem = new JMenuItem(I18N.getText("token.popup.menu.zorder.back"));
     sendToBackMenuItem.addActionListener(new SendToBackAction());
 
     arrangeMenu.add(bringToFrontMenuItem);
@@ -268,12 +266,15 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
   }
 
   protected JMenu createSizeMenu() {
-    JMenu sizeMenu = new JMenu("Size");
+    JMenu sizeMenu = new JMenu(I18N.getText("token.popup.menu.size"));
 
     JCheckBoxMenuItem freeSize = new JCheckBoxMenuItem(new FreeSizeAction());
     freeSize.setSelected(!tokenUnderMouse.isSnapToScale());
-
     sizeMenu.add(freeSize);
+
+    JCheckBoxMenuItem resetSize = new JCheckBoxMenuItem(new ResetSizeAction());
+    sizeMenu.add(resetSize);
+
     sizeMenu.addSeparator();
 
     Grid grid = renderer.getZone().getGrid();
@@ -400,7 +401,9 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class FreeSizeAction extends AbstractAction {
     public FreeSizeAction() {
-      putValue(Action.NAME, tokenUnderMouse.isStamp() ? "Free Size" : "Native Size");
+      String actionText =
+          I18N.getText("token.popup.menu.size" + (tokenUnderMouse.isStamp() ? ".free" : ".native"));
+      putValue(Action.NAME, actionText);
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -416,6 +419,27 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
     }
   }
 
+  public class ResetSizeAction extends AbstractAction {
+    public ResetSizeAction() {
+      // putValue(Action.NAME, tokenUnderMouse.isStamp() ? "Free Size" : "Native Size");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.size.reset"));
+    }
+
+    public void actionPerformed(ActionEvent e) {
+      for (GUID tokenGUID : selectedTokenSet) {
+        Token token = renderer.getZone().getToken(tokenGUID);
+        if (token == null) {
+          continue;
+        }
+        token.setFootprint(
+            renderer.getZone().getGrid(), renderer.getZone().getGrid().getDefaultFootprint());
+        token.setSnapToScale(true);
+        MapTool.serverCommand().putToken(renderer.getZone().getId(), token);
+      }
+      renderer.repaint();
+    }
+  }
+
   public class CopyAction extends AbstractAction {
     public CopyAction() {
       putValue(Action.NAME, I18N.getText("action.copyTokens"));
@@ -423,6 +447,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
     public void actionPerformed(ActionEvent e) {
       AppActions.copyTokens(selectedTokenSet);
+      AppActions.updateActions();
     }
   }
 
@@ -433,6 +458,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
     public void actionPerformed(ActionEvent e) {
       AppActions.cutTokens(renderer.getZone(), selectedTokenSet);
+      AppActions.updateActions();
     }
   }
 
@@ -471,7 +497,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
     boolean saveMultipleTokens = false;
 
     public SaveAction() {
-      super("Save ...");
+      super(I18N.getText("token.popup.menu.save"));
 
       if (selectedTokenSet.size() > 1) {
         saveMultipleTokens = true;
@@ -511,14 +537,12 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
         else if (token.getGMName().trim().isEmpty()) tokenNameGM = tokenName;
         else tokenNameGM = token.getGMName();
 
-        final File defaultFile =
-            FileUtil.cleanFileName(AppPreferences.getSaveDir().getPath(), tokenName, "");
-        final File defaultFileGM =
-            FileUtil.cleanFileName(AppPreferences.getSaveDir().getPath(), tokenNameGM, "");
-
         // chooser.setCurrentDirectory(AppPreferences.getSaveDir());
 
-        final JFileChooser chooser = MapTool.getFrame().getSaveFileChooser();
+        final JFileChooser chooser = MapTool.getFrame().getSaveTokenFileChooser();
+        final File defaultFile =
+            FileUtil.cleanFileName(chooser.getCurrentDirectory().toString(), tokenName, "");
+
         chooser.resetChoosableFileFilters();
         chooser.setAcceptAllFileFilterUsed(false);
         chooser.addChoosableFileFilter(tokenFilter);
@@ -622,19 +646,21 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
           } else {
             PersistenceUtil.saveToken(token, tokenSaveFile);
           }
+          saveDirectory = tokenSaveFile.getParentFile();
         } catch (IOException ioe) {
           ioe.printStackTrace();
           MapTool.showError("Could not save token: " + ioe);
         }
       }
-
-      if (saveDirectory != null) AppPreferences.setSaveDir(saveDirectory);
+      if (saveDirectory != null) {
+        AppPreferences.setTokenSaveDir(saveDirectory);
+      }
     }
   }
 
   public class SetFacingAction extends AbstractAction {
     public SetFacingAction() {
-      super("Set Facing");
+      super(I18N.getText("token.popup.menu.facing.set"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -649,7 +675,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ClearFacingAction extends AbstractAction {
     public ClearFacingAction() {
-      super("Clear Facing");
+      super(I18N.getString("token.popup.menu.facing.clear"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -666,7 +692,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ClearLightsOnlyAction extends AbstractAction {
     public ClearLightsOnlyAction() {
-      super("Clear Lights Only");
+      super(I18N.getString("token.popup.menu.lights.clear"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -686,7 +712,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ClearAurasOnlyAction extends AbstractAction {
     public ClearAurasOnlyAction() {
-      super("Clear Auras Only");
+      super(I18N.getString("token.popup.menu.auras.clear"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -706,7 +732,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ClearGMAurasOnlyAction extends AbstractAction {
     public ClearGMAurasOnlyAction() {
-      super("Clear GM Auras Only");
+      super("token.popup.menu.auras.clearGM");
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -726,7 +752,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ClearOwnerAurasOnlyAction extends AbstractAction {
     public ClearOwnerAurasOnlyAction() {
-      super("Clear Owner Auras Only");
+      super(I18N.getText("token.popup.menu.auras.clearOwner"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -746,7 +772,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ClearLightAction extends AbstractAction {
     public ClearLightAction() {
-      super("Clear All");
+      super(I18N.getText("token.popup.menu.lights.clearAll"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -767,7 +793,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
     private final ZoneRenderer renderer;
 
     public SnapToGridAction(boolean snapToGrid, ZoneRenderer renderer) {
-      super("Snap to grid");
+      super(I18N.getText("token.popup.menu.snap"));
       this.snapToGrid = snapToGrid;
       this.renderer = renderer;
     }
@@ -779,23 +805,15 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
         if (token == null) {
           continue;
         }
-        token.setSnapToGrid(!snapToGrid);
-        Grid grid = zone.getGrid();
-        Dimension offset = grid.getCellOffset();
-        if (token.isSnapToGrid()) {
-          if (grid.getCapabilities().isSnapToGridSupported()) {
-            ZonePoint zp = new ZonePoint(token.getX() - offset.width, token.getY() - offset.height);
-            zp = grid.convert(grid.convert(zp));
-            token.setX(zp.x);
-            token.setY(zp.y);
-          }
+        ZonePoint zp;
+        if (snapToGrid) {
+          zp = token.getUnsnappedPoint(zone);
         } else {
-          // If SnapToGrid is now off, change the (x,y) coordinates based on the cell offset being
-          // used by the grid
-          token.setX(token.getX() + offset.width);
-          token.setY(token.getY() + offset.height);
+          zp = token.getSnappedPoint(zone);
         }
-        MapTool.serverCommand().putToken(renderer.getZone().getId(), token);
+        // Updates both snap-to-grid and new location in one command
+        Token.Update update = Token.Update.setSnapToGridAndXY;
+        MapTool.serverCommand().updateTokenProperty(token, update, !snapToGrid, zp.x, zp.y);
       }
     }
   }
@@ -886,7 +904,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class VisibilityAction extends AbstractAction {
     {
-      putValue(Action.NAME, "Visible to players");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.visible"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -922,7 +940,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ImpersonateAction extends AbstractAction {
     public ImpersonateAction() {
-      putValue(Action.NAME, "Impersonate");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.impersonate"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -939,7 +957,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class StartMoveAction extends AbstractAction {
     public StartMoveAction() {
-      putValue(Action.NAME, "Move");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.move"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -954,29 +972,40 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
 
   public class ShowPropertiesDialogAction extends AbstractAction {
     public ShowPropertiesDialogAction() {
-      putValue(Action.NAME, "Edit ...");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.edit"));
 
       // Jamz: Bug fix, we don't support editing multiple tokens here.
       if (selectedTokenSet.size() > 1) {
         setEnabled(false);
+      } else if (!MapTool.getPlayer().isGM() && MapTool.getServerPolicy().isTokenEditorLocked()) {
+        setEnabled(false);
       }
     }
 
+    @Override
     public void actionPerformed(ActionEvent e) {
-      EditTokenDialog dialog = MapTool.getFrame().getTokenPropertiesDialog();
-      dialog.showDialog(tokenUnderMouse);
-      if (dialog.isTokenSaved()) {
-        getRenderer().repaint();
-        MapTool.serverCommand().putToken(getRenderer().getZone().getId(), getTokenUnderMouse());
-        getRenderer().getZone().putToken(getTokenUnderMouse());
-        MapTool.getFrame().resetTokenPanels();
+      MapTool.getFrame().showTokenPropertiesDialog(getTokenUnderMouse(), getRenderer());
+    }
+
+    /**
+     * Converts the action to a JMenuItem, and adds a tooltip if the action is blocked.
+     *
+     * @return the new {@link JMenuItem}
+     */
+    public JMenuItem asJMenuItem() {
+      JMenuItem jMenuItem = new JMenuItem(this);
+      if (selectedTokenSet.size() > 1) {
+        jMenuItem.setToolTipText(I18N.getText("token.popup.menu.edit.toomany.tooltip"));
+      } else if (!MapTool.getPlayer().isGM() && MapTool.getServerPolicy().isTokenEditorLocked()) {
+        jMenuItem.setToolTipText(I18N.getText("token.popup.menu.edit.notallowed.tooltip"));
       }
+      return jMenuItem;
     }
   }
 
   public class DeleteAction extends AbstractAction {
     public DeleteAction() {
-      putValue(Action.NAME, "Delete");
+      putValue(Action.NAME, I18N.getText("token.popup.menu.delete"));
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -984,35 +1013,7 @@ public abstract class AbstractTokenPopupMenu extends JPopupMenu {
       if (!MapTool.confirmTokenDelete()) {
         return;
       }
-      boolean unhideImpersonated = false;
-      boolean unhideSelected = false;
-      if (renderer.getSelectedTokenSet().size() > 10) {
-        if (MapTool.getFrame().getFrame(MapToolFrame.MTFrame.IMPERSONATED).isHidden() == false) {
-          unhideImpersonated = true;
-          MapTool.getFrame()
-              .getDockingManager()
-              .hideFrame(MapToolFrame.MTFrame.IMPERSONATED.name());
-        }
-        if (MapTool.getFrame().getFrame(MapToolFrame.MTFrame.SELECTION).isHidden() == false) {
-          unhideSelected = true;
-          MapTool.getFrame().getDockingManager().hideFrame(MapToolFrame.MTFrame.SELECTION.name());
-        }
-      }
-      for (GUID tokenGUID : selectedTokenSet) {
-        Token token = renderer.getZone().getToken(tokenGUID);
-
-        if (AppUtil.playerOwns(token)) {
-          renderer.getZone().removeToken(tokenGUID);
-          MapTool.serverCommand().removeToken(renderer.getZone().getId(), tokenGUID);
-        }
-      }
-      if (unhideImpersonated) {
-        MapTool.getFrame().getDockingManager().showFrame(MapToolFrame.MTFrame.IMPERSONATED.name());
-      }
-
-      if (unhideSelected) {
-        MapTool.getFrame().getDockingManager().showFrame(MapToolFrame.MTFrame.SELECTION.name());
-      }
+      AppActions.deleteTokens(renderer.getZone(), selectedTokenSet);
     }
   }
 

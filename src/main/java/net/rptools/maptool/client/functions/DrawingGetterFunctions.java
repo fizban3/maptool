@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import net.rptools.maptool.model.GUID;
 import net.rptools.maptool.model.Zone;
+import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
 
@@ -47,14 +48,15 @@ public class DrawingGetterFunctions extends DrawingFunctions {
         "getFillColor",
         "getDrawingEraser",
         "getPenWidth",
-        "getLineCap");
+        "getLineCap",
+        "getDrawingInfo");
   }
 
   @Override
   public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
       throws ParserException {
     checkTrusted(functionName);
-    checkNumberOfParameters(functionName, parameters, 2, 2);
+    FunctionUtil.checkNumberParam(functionName, parameters, 2, 2);
     String mapName = parameters.get(0).toString();
     String id = parameters.get(1).toString();
     Zone map = getNamedMap(functionName, mapName).getZone();
@@ -77,6 +79,8 @@ public class DrawingGetterFunctions extends DrawingFunctions {
       return getPen(functionName, map, guid).getThickness();
     } else if ("getLineCap".equalsIgnoreCase(functionName)) {
       return getPen(functionName, map, guid).getSquareCap() ? BigDecimal.ONE : BigDecimal.ZERO;
+    } else if ("getDrawingInfo".equalsIgnoreCase(functionName)) {
+      return getDrawingJSONInfo(functionName, map, guid);
     }
     return null;
   }

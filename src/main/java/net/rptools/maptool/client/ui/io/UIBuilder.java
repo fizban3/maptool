@@ -67,6 +67,10 @@ public class UIBuilder extends JDialog {
       // children.
     }
 
+    private MutableTreeNode last_start = null, last_root = null;
+
+    private String last_dir = null;
+
     /**
      * This method accepts three parameters and inserts a node into a tree at a given path.
      *
@@ -81,8 +85,6 @@ public class UIBuilder extends JDialog {
      *
      * <p>An example of how to use this method to add a sequence of three nodes:
      *
-     * <p>
-     *
      * <pre>
      * UIBuilder form = new UIBuilder();
      * DefaultMutableTreeNode root = ((DefaultTreeModel) form.getTree().getModel()).getRoot();
@@ -96,10 +98,6 @@ public class UIBuilder extends JDialog {
      * @param start where to begin when traversing the path (<code>null</code> means the top of the
      *     tree)
      */
-    private MutableTreeNode last_start = null, last_root = null;
-
-    private String last_dir = null;
-
     @SuppressWarnings({"unused"})
     public void addNode(String dir, MaptoolNode node, MutableTreeNode start) {
       MutableTreeNode firstChangedNode = null;
@@ -356,8 +354,6 @@ public class UIBuilder extends JDialog {
    * will be passed the current root of the tree and should return an integer indicating the number
    * of immediate children they added. (I'm thinking this can be used to display the tree right away
    * while allowing the tree to continue to populate in the background.)
-   *
-   * @param tree the JTree to which the nodes should be added
    */
   private void buildTree() {
     String[] predefined_dirs = {"Properties", "Maps", "Macros", "Images"};

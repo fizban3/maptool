@@ -232,6 +232,16 @@ public class InitiativeList implements Serializable {
     return old;
   }
 
+  public Token getCurrentToken() {
+    int currentIndex = getCurrent();
+    return currentIndex < 0 ? null : getToken(currentIndex);
+  }
+
+  public TokenInitiative getCurrentTokenInitiative() {
+    int currentIndex = getCurrent();
+    return currentIndex < 0 ? null : getTokenInitiative(currentIndex);
+  }
+
   /** @return Getter for current */
   public int getCurrent() {
     return current;
@@ -626,7 +636,11 @@ public class InitiativeList implements Serializable {
       return holding;
     }
 
-    /** @param isHolding Setter for the holding to set */
+    /**
+     * Set the hold of an initiative, and update the server.
+     *
+     * @param isHolding the holding to set
+     */
     public void setHolding(boolean isHolding) {
       if (holding == isHolding) return;
       startUnitOfWork();
@@ -641,7 +655,11 @@ public class InitiativeList implements Serializable {
       return state;
     }
 
-    /** @param aState Setter for the state to set */
+    /**
+     * Set the state of an initiative, and update the server.
+     *
+     * @param aState state to set
+     */
     public void setState(String aState) {
       if (state == aState || (state != null && state.equals(aState))) return;
       startUnitOfWork();

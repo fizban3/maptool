@@ -1,6 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
+title: ''
+labels: bug
+assignees: ''
 
 ---
 
@@ -21,7 +24,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **MapTool Info**
-- Version: 1.5.4.3
+- Version: 1.5.?
 - Install: New, Upgrade [previous version], or JAR [Java Version]
 
 **Desktop (please complete the following information):**

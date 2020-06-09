@@ -18,10 +18,7 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,6 +28,8 @@ import net.rptools.lib.image.ImageUtil;
 import net.rptools.maptool.model.Asset;
 import net.rptools.maptool.model.AssetAvailableListener;
 import net.rptools.maptool.model.AssetManager;
+import org.apache.commons.collections4.map.AbstractReferenceMap;
+import org.apache.commons.collections4.map.ReferenceMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,7 +49,10 @@ public class ImageManager {
   /** Cache of images loaded for assets. */
   private static final Map<MD5Key, BufferedImage> imageMap = new HashMap<MD5Key, BufferedImage>();
 
-  private static final Map<MD5Key, byte[]> textureMap = new HashMap<MD5Key, byte[]>();
+  /** Additional Soft-reference Cache of images that allows best . */
+  private static final Map<MD5Key, BufferedImage> backupImageMap =
+      new ReferenceMap(
+          AbstractReferenceMap.ReferenceStrength.HARD, AbstractReferenceMap.ReferenceStrength.SOFT);
 
   /**
    * The unknown image, a "?" is used for all situations where the image will eventually appear e.g.
@@ -58,6 +60,7 @@ public class ImageManager {
    */
   private static final String UNKNOWN_IMAGE_PNG = "net/rptools/maptool/client/image/unknown.png";
 
+  /** The buffered "?" image to display while transferring the image. */
   public static BufferedImage TRANSFERING_IMAGE;
 
   /** The broken image, a "X" is used for all situations where the asset or image was invalid. */
@@ -107,7 +110,7 @@ public class ImageManager {
   /**
    * Loads the asset's raw image data into a buffered image, and waits for the image to load.
    *
-   * @param asset Load image data from this asset
+   * @param assetId Load image data from this asset
    * @return BufferedImage Return the loaded image
    */
   public static BufferedImage getImageAndWait(MD5Key assetId) {
@@ -117,6 +120,8 @@ public class ImageManager {
   /**
    * Flush all images that are <b>not</b> in the provided set. This presumes that the images in the
    * exception set will still be in use after the flush.
+   *
+   * @param exceptionSet a set of images not to be flushed
    */
   public static void flush(Set<MD5Key> exceptionSet) {
     synchronized (imageLoaderMutex) {
@@ -131,7 +136,7 @@ public class ImageManager {
   /**
    * Loads the asset's raw image data into a buffered image, and waits for the image to load.
    *
-   * @param asset Load image data from this asset
+   * @param assetId Load image data from this asset
    * @param hintMap Hints used when loading the image
    * @return BufferedImage Return the loaded image
    */
@@ -171,10 +176,25 @@ public class ImageManager {
     return image;
   }
 
+  /**
+   * Return the image corresponding to the assetId.
+   *
+   * @param assetId Load image data from this asset.
+   * @param observers the observers to be notified when the image loads, if it hasn't already.
+   * @return the image, or BROKEN_IMAGE if assetId null, or TRANSFERING_IMAGE if loading.
+   */
   public static BufferedImage getImage(MD5Key assetId, ImageObserver... observers) {
     return getImage(assetId, null, observers);
   }
 
+  /**
+   * Return the image corresponding to the assetId.
+   *
+   * @param assetId Load image data from this asset.
+   * @param hints hints used when loading image data, if it isn't in the imageMap already.
+   * @param observers the observers to be notified when the image loads, if it hasn't already.
+   * @return the image, or BROKEN_IMAGE if assetId null, or TRANSFERING_IMAGE if loading.
+   */
   public static BufferedImage getImage(
       MD5Key assetId, Map<String, Object> hints, ImageObserver... observers) {
     if (assetId == null) {
@@ -185,6 +205,14 @@ public class ImageManager {
       if (image != null && image != TRANSFERING_IMAGE) {
         return image;
       }
+
+      // check if the soft reference still resolves image
+      image = backupImageMap.get(assetId);
+      if (image != null) {
+        imageMap.put(assetId, image);
+        return image;
+      }
+
       // Make note that we're currently processing it
       imageMap.put(assetId, TRANSFERING_IMAGE);
 
@@ -217,7 +245,6 @@ public class ImageManager {
   public static void flushImage(MD5Key assetId) {
     // LATER: investigate how this effects images that are already in progress
     imageMap.remove(assetId);
-    textureMap.remove(assetId);
   }
 
   /**
@@ -225,7 +252,6 @@ public class ImageManager {
    * completed loading.
    *
    * @param assetId Waiting for this asset to load
-   * @param hints Load the asset image with these hints
    * @param observers Observers to be notified
    */
   public static void addObservers(MD5Key assetId, ImageObserver... observers) {
@@ -287,7 +313,9 @@ public class ImageManager {
         try {
           assert asset.getImage() != null
               : "asset.getImage() for " + asset.toString() + "returns null?!";
-          image = ImageUtil.createCompatibleImage(ImageUtil.bytesToImage(asset.getImage()), hints);
+          image =
+              ImageUtil.createCompatibleImage(
+                  ImageUtil.bytesToImage(asset.getImage(), asset.getName()), hints);
         } catch (Throwable t) {
           log.error(
               "BackgroundImageLoader.run("
@@ -305,6 +333,7 @@ public class ImageManager {
       synchronized (imageLoaderMutex) {
         // Replace placeholder with actual image
         imageMap.put(asset.getId(), image);
+        backupImageMap.put(asset.getId(), image);
         notifyObservers(asset, image);
       }
     }

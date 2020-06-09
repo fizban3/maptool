@@ -75,6 +75,9 @@ public class ButtonGroup extends AbstractButtonGroup {
       for (MacroButtonProperties prop : propertiesList) {
         if (panelClass.equals("GlobalPanel") || panelClass.equals("CampaignPanel")) {
           add(new MacroButton(prop, this));
+        } else if (panelClass.equals("GmPanel")) {
+          if (MapTool.getPlayer() == null || MapTool.getPlayer().isGM())
+            add(new MacroButton(prop, this));
         } else if (panelClass.equals("ImpersonatePanel") || panelClass.equals("SelectionPanel")) {
           add(new MacroButton(prop, this, getToken()));
         }
@@ -115,7 +118,8 @@ public class ButtonGroup extends AbstractButtonGroup {
               data.fontSize,
               data.minWidth,
               data.maxWidth,
-              data.toolTip);
+              data.toolTip,
+              data.displayHotKey);
 
       if (panelClass.equals("GlobalPanel")) {
         event.acceptDrop(event.getDropAction());
@@ -131,6 +135,14 @@ public class ButtonGroup extends AbstractButtonGroup {
         if (!tempProperties.isDuplicateMacro("CampaignPanel", null)) {
           new MacroButtonProperties(
               panelClass, MapTool.getCampaign().getMacroButtonNextIndex(), tempProperties);
+        }
+      } else if (panelClass.equals("GmPanel")) {
+        event.acceptDrop(event.getDropAction());
+        tempProperties.setGroup(
+            getMacroGroup()); // assign the group you are dropping it into, rather than the original
+        if (!tempProperties.isDuplicateMacro("GmPanel", null)) {
+          new MacroButtonProperties(
+              panelClass, MapTool.getCampaign().getGmMacroButtonNextIndex(), tempProperties);
         }
       } else if (panelClass.equals("SelectionPanel")) {
         if (getArea() != null) {

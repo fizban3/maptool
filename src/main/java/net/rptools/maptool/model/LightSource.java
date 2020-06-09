@@ -93,6 +93,7 @@ public class LightSource implements Comparable<LightSource> {
     getLightList().remove(source);
   }
 
+  /** @return the lightList of the LightSource */
   public List<Light> getLightList() {
     if (lightList == null) {
       lightList = new LinkedList<Light>();
@@ -132,7 +133,9 @@ public class LightSource implements Comparable<LightSource> {
     return scaleWithToken;
   }
 
-  /** Area for a single light, subtracting any previous lights */
+  /*
+   * Area for a single light, subtracting any previous lights
+   */
   public Area getArea(Token token, Zone zone, Direction position, Light light) {
     Area area = light.getArea(token, zone, scaleWithToken);
     // TODO: This seems horribly inefficient
@@ -144,7 +147,7 @@ public class LightSource implements Comparable<LightSource> {
     return getArea(token, zone, position, area);
   }
 
-  /** Area for all lights combined */
+  /* Area for all lights combined */
   public Area getArea(Token token, Zone zone, Direction position) {
     Area area = new Area();
 

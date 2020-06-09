@@ -14,16 +14,18 @@
  */
 package net.rptools.maptool.client.functions;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonPrimitive;
 import java.util.LinkedList;
 import java.util.List;
 import net.rptools.maptool.client.MapTool;
 import net.rptools.maptool.client.ui.zone.ZoneRenderer;
 import net.rptools.maptool.language.I18N;
 import net.rptools.maptool.model.Zone;
+import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
 import net.rptools.parser.function.AbstractFunction;
-import net.sf.json.JSONArray;
 
 public class MapFunctions extends AbstractFunction {
   private static final MapFunctions instance = new MapFunctions();
@@ -50,22 +52,17 @@ public class MapFunctions extends AbstractFunction {
   public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
       throws ParserException {
     if (functionName.equals("getCurrentMapName")) {
-      checkNumberOfParameters(functionName, parameters, 0, 0);
+      FunctionUtil.checkNumberParam(functionName, parameters, 0, 0);
       return MapTool.getFrame().getCurrentZoneRenderer().getZone().getName();
     } else if (functionName.equals("setCurrentMap")) {
       checkTrusted(functionName);
-      checkNumberOfParameters(functionName, parameters, 1, 1);
+      FunctionUtil.checkNumberParam(functionName, parameters, 1, 1);
       String mapName = parameters.get(0).toString();
       ZoneRenderer zr = getNamedMap(functionName, mapName);
-      if (zr != null) {
-        MapTool.getFrame().setCurrentZoneRenderer(zr);
-        return mapName;
-      }
-      throw new ParserException(
-          I18N.getText("macro.function.moveTokenMap.unknownMap", functionName, mapName));
-
+      MapTool.getFrame().setCurrentZoneRenderer(zr);
+      return mapName;
     } else if ("getMapVisible".equalsIgnoreCase(functionName)) {
-      checkNumberOfParameters(functionName, parameters, 0, 1);
+      FunctionUtil.checkNumberParam(functionName, parameters, 0, 1);
       if (parameters.size() > 0) {
         String mapName = parameters.get(0).toString();
         return getNamedMap(functionName, mapName).getZone().isVisible() ? "1" : "0";
@@ -76,8 +73,8 @@ public class MapFunctions extends AbstractFunction {
 
     } else if ("setMapVisible".equalsIgnoreCase(functionName)) {
       checkTrusted(functionName);
-      checkNumberOfParameters(functionName, parameters, 1, 2);
-      boolean visible = AbstractTokenAccessorFunction.getBooleanValue(parameters.get(0).toString());
+      FunctionUtil.checkNumberParam(functionName, parameters, 1, 2);
+      boolean visible = FunctionUtil.getBooleanValue(parameters.get(0).toString());
       Zone zone = MapTool.getFrame().getCurrentZoneRenderer().getZone();
       if (parameters.size() > 1) {
         String mapName = parameters.get(1).toString();
@@ -92,7 +89,7 @@ public class MapFunctions extends AbstractFunction {
 
     } else if ("setMapName".equalsIgnoreCase(functionName)) {
       checkTrusted(functionName);
-      checkNumberOfParameters(functionName, parameters, 2, 2);
+      FunctionUtil.checkNumberParam(functionName, parameters, 2, 2);
       String oldMapName = parameters.get(0).toString();
       String newMapName = parameters.get(1).toString();
       Zone zone = getNamedMap(functionName, oldMapName).getZone();
@@ -104,7 +101,7 @@ public class MapFunctions extends AbstractFunction {
 
     } else if ("copyMap".equalsIgnoreCase(functionName)) {
       checkTrusted(functionName);
-      checkNumberOfParameters(functionName, parameters, 2, 2);
+      FunctionUtil.checkNumberParam(functionName, parameters, 2, 2);
       String oldName = parameters.get(0).toString();
       String newName = parameters.get(1).toString();
       Zone oldMap = getNamedMap(functionName, oldName).getZone();
@@ -115,7 +112,7 @@ public class MapFunctions extends AbstractFunction {
       return newMap.getName();
 
     } else {
-      checkNumberOfParameters(functionName, parameters, 0, 1);
+      FunctionUtil.checkNumberParam(functionName, parameters, 0, 1);
       boolean allMaps = functionName.equals("getAllMapNames");
 
       if (allMaps) checkTrusted(functionName);
@@ -128,7 +125,9 @@ public class MapFunctions extends AbstractFunction {
       }
       String delim = parameters.size() > 0 ? parameters.get(0).toString() : ",";
       if ("json".equals(delim)) {
-        return JSONArray.fromObject(mapNames);
+        JsonArray jarr = new JsonArray();
+        mapNames.forEach(m -> jarr.add(new JsonPrimitive(m)));
+        return jarr;
       } else {
         return StringFunctions.getInstance().join(mapNames, delim);
       }
@@ -143,38 +142,14 @@ public class MapFunctions extends AbstractFunction {
    * @return ZoneRenderer The map/zone.
    * @throws ParserException if the map is not found
    */
-  private ZoneRenderer getNamedMap(String functionName, String mapName) throws ParserException {
-    for (ZoneRenderer zr : MapTool.getFrame().getZoneRenderers()) {
-      if (mapName.equals(zr.getZone().getName())) {
-        return zr;
-      }
-    }
+  private ZoneRenderer getNamedMap(final String functionName, final String mapName)
+      throws ParserException {
+    ZoneRenderer zr = MapTool.getFrame().getZoneRenderer(mapName);
+
+    if (zr != null) return zr;
+
     throw new ParserException(
         I18N.getText("macro.function.moveTokenMap.unknownMap", functionName, mapName));
-  }
-
-  /**
-   * Checks that the number of objects in the list <code>parameters</code> is within given bounds
-   * (inclusive). Throws a <code>ParserException</code> if the check fails.
-   *
-   * @param functionName this is used in the exception message
-   * @param parameters a list of parameters
-   * @param min the minimum amount of parameters (inclusive)
-   * @param max the maximum amount of parameters (inclusive)
-   * @throws ParserException if there were more or less parameters than allowed
-   */
-  private void checkNumberOfParameters(
-      String functionName, List<Object> parameters, int min, int max) throws ParserException {
-    int numberOfParameters = parameters.size();
-    if (numberOfParameters < min) {
-      throw new ParserException(
-          I18N.getText(
-              "macro.function.general.notEnoughParam", functionName, min, numberOfParameters));
-    } else if (numberOfParameters > max) {
-      throw new ParserException(
-          I18N.getText(
-              "macro.function.general.tooManyParam", functionName, max, numberOfParameters));
-    }
   }
 
   /**

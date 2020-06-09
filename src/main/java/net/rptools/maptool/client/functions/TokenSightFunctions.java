@@ -21,13 +21,12 @@ import java.math.BigDecimal;
 import java.util.List;
 import net.rptools.maptool.client.AppUtil;
 import net.rptools.maptool.client.MapTool;
-import net.rptools.maptool.client.MapToolVariableResolver;
 import net.rptools.maptool.client.ui.zone.ZoneRenderer;
-import net.rptools.maptool.language.I18N;
 import net.rptools.maptool.model.Grid;
 import net.rptools.maptool.model.Token;
 import net.rptools.maptool.model.Zone;
 import net.rptools.maptool.model.ZonePoint;
+import net.rptools.maptool.util.FunctionUtil;
 import net.rptools.parser.Parser;
 import net.rptools.parser.ParserException;
 import net.rptools.parser.function.AbstractFunction;
@@ -37,7 +36,7 @@ public class TokenSightFunctions extends AbstractFunction {
   private static final TokenSightFunctions instance = new TokenSightFunctions();
 
   private TokenSightFunctions() {
-    super(0, 2, "hasSight", "setHasSight", "getSightType", "setSightType", "canSeeToken");
+    super(0, 3, "hasSight", "setHasSight", "getSightType", "setSightType", "canSeeToken");
   }
 
   public static TokenSightFunctions getInstance() {
@@ -56,105 +55,50 @@ public class TokenSightFunctions extends AbstractFunction {
   public Object childEvaluate(Parser parser, String functionName, List<Object> parameters)
       throws ParserException {
     Token token;
-
-    // For functions no parameters except option tokenID
+    // For functions no parameters except option tokenID and mapname
     if (functionName.equals("hasSight") || functionName.equals("getSightType")) {
-      if (parameters.size() == 1) {
-        token = FindTokenFunctions.findToken(parameters.get(0).toString(), null);
-        if (token == null) {
-          throw new ParserException(
-              I18N.getText(
-                  "macro.function.general.unknownToken",
-                  functionName,
-                  parameters.get(0).toString()));
-        }
-      } else if (parameters.size() == 0) {
-        token = ((MapToolVariableResolver) parser.getVariableResolver()).getTokenInContext();
-        if (token == null) {
-          throw new ParserException(
-              I18N.getText("macro.function.general.noImpersonated", functionName));
-        }
-      } else {
-        throw new ParserException(
-            I18N.getText(
-                "macro.function.general.tooManyParam", functionName, 1, parameters.size()));
-      }
-
+      FunctionUtil.checkNumberParam(functionName, parameters, 0, 2);
+      token = FunctionUtil.getTokenFromParam(parser, functionName, parameters, 0, 1);
       if (functionName.equals("hasSight"))
         return token.getHasSight() ? BigDecimal.ONE : BigDecimal.ZERO;
 
-      if (functionName.equals("getSightType")) return token.getSightType();
+      // if (functionName.equals("getSightType"))
+      // Don't test to remove code warning for always true if statement
+      String sightType = token.getSightType();
+      if (sightType == null) sightType = "";
+      return sightType;
     }
 
-    // For functions with only 1 parameter and optional second parameter of tokenID
-    if (parameters.size() > 2)
-      throw new ParserException(
-          I18N.getText("macro.function.general.tooManyParam", functionName, 1, parameters.size()));
-
-    if (parameters.isEmpty())
-      throw new ParserException(
-          I18N.getText(
-              "macro.function.general.notenoughparms", functionName, 1, parameters.size()));
-
-    if (parameters.size() == 2) {
-      token = FindTokenFunctions.findToken(parameters.get(1).toString(), null);
-
-      if (token == null) {
-        throw new ParserException(
-            I18N.getText(
-                "macro.function.general.unknownToken", functionName, parameters.get(0).toString()));
-      }
-    } else {
-      token = ((MapToolVariableResolver) parser.getVariableResolver()).getTokenInContext();
-
-      if (token == null) {
-        throw new ParserException(
-            I18N.getText("macro.function.general.noImpersonated", functionName));
-      }
-    }
-
-    ZoneRenderer renderer = MapTool.getFrame().getCurrentZoneRenderer();
-    Zone zone = renderer.getZone();
+    // For functions with only 1 parameter and optional second parameter of tokenID & mapname
+    FunctionUtil.checkNumberParam(functionName, parameters, 1, 3);
+    token = FunctionUtil.getTokenFromParam(parser, functionName, parameters, 1, 2);
 
     if (functionName.equals("setHasSight")) {
-      token.setHasSight(!parameters.get(0).equals(BigDecimal.ZERO));
-      zone.putToken(token);
-      MapTool.serverCommand().putToken(zone.getId(), token);
-      renderer.flushLight();
-      return "";
+      boolean hasSight = !parameters.get(0).equals(BigDecimal.ZERO);
+      MapTool.serverCommand().updateTokenProperty(token, Token.Update.setHasSight, hasSight);
+      return token.getHasSight() ? BigDecimal.ONE : BigDecimal.ZERO;
     }
 
     if (functionName.equals("setSightType")) {
-      token.setSightType(parameters.get(0).toString());
-      zone.putToken(token);
-      MapTool.serverCommand().putToken(zone.getId(), token);
-      renderer.flushLight();
-      return "";
+      String sightType = parameters.get(0).toString();
+      MapTool.serverCommand().updateTokenProperty(token, Token.Update.setSightType, sightType);
+      return token.getSightType();
     }
 
     if (functionName.equals("canSeeToken")) {
       if (!token.getHasSight()) {
         return "[]";
       }
-      Area tokensVisibleArea = renderer.getZoneView().getVisibleArea(token);
+      ZoneRenderer zoneRenderer = token.getZoneRenderer();
+      Area tokensVisibleArea = zoneRenderer.getZoneView().getVisibleArea(token);
       if (tokensVisibleArea == null) {
         return "[]";
       }
-      Token target = null;
-      try {
-        target = FindTokenFunctions.findToken(parameters.get(0).toString(), zone.getName());
-      } catch (Exception e) {
-        if (e instanceof ClassCastException || token == null) {
-          throw new ParserException(
-              I18N.getText("macro.function.general.argumentTypeT", 2, functionName));
-        }
-      }
-      if (target == null) {
-        return "[]";
-      }
+      Token target = FunctionUtil.getTokenFromParam(parser, functionName, parameters, 0, 2);
       if (!target.isVisible() || (target.isVisibleOnlyToOwner() && !AppUtil.playerOwns(target))) {
         return "[]";
       }
+      Zone zone = zoneRenderer.getZone();
       Grid grid = zone.getGrid();
 
       Rectangle bounds =

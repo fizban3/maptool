@@ -39,9 +39,11 @@ public class SplashScreen extends JFrame {
     // Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     // final JFXPanel fxPanel = new JFXPanel();
 
-    // setUndecorated(true);
-    // add(fxPanel);
-    // setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    //setUndecorated(true);
+    //setType(Type.UTILITY);
+
+    //add(fxPanel);
+    //setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
     // try {
     //   // Jamz: Remove border, change to transparent background
@@ -51,6 +53,7 @@ public class SplashScreen extends JFrame {
     //   setBackground(new java.awt.Color(0, 0, 0));
     // }
 
+    // Platform.setImplicitExit(false); // necessary to use JavaFX later
     // Platform.runLater(
     //     new Runnable() {
     //       @Override

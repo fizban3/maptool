@@ -31,7 +31,7 @@ import javax.swing.JList;
  * Combo box showing the available pen widths and a preview of each.
  *
  * @author Jay
- * @version $Revision: 1307 $ $Date: 2005-10-18 19:51:22 -0500 (Tue, 18 Oct 2005) $ $Author:&
+ * @version $Revision: 1307 $ $Date: 2005-10-18 19:51:22 -0500 (Tue, 18 Oct 2005)$
  */
 @SuppressWarnings("serial")
 public class PenWidthChooser extends JComboBox {
@@ -48,7 +48,11 @@ public class PenWidthChooser extends JComboBox {
   /** The maximum number of eleemnts in the list before it scrolls */
   public static final int MAX_ROW_COUNT = 10;
 
-  /** Create the renderer and model for the combo box */
+  /**
+   * Create the renderer and model for the combo box
+   *
+   * @param defaultThickness the default thickness of the item
+   */
   public PenWidthChooser(int defaultThickness) {
     setRenderer(renderer);
     DefaultComboBoxModel model = new DefaultComboBoxModel();

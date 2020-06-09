@@ -55,8 +55,9 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
         neighborMap =
             new int[][] {NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
         break;
-      case ONE_ONE_ONE:
       case MANHATTAN:
+        diagonalMultiplier = 2;
+      case ONE_ONE_ONE:
         // promote straight directions to avoid 'only-diagonals' effect
         neighborMap =
             new int[][] {NORTH, EAST, SOUTH, WEST, NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
@@ -83,7 +84,7 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
     int yDist = current.y - goal.y;
 
     double distance;
-    int crossProductTieBreaker = 0;
+    int crossProductTieBreaker;
 
     switch (metric) {
       case MANHATTAN:
@@ -91,6 +92,7 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
         distance = Math.abs(xDist) + Math.abs(yDist);
         break;
       default:
+      case ONE_ONE_ONE:
       case ONE_TWO_ONE:
         xDist = Math.abs(current.x - goal.x);
         yDist = Math.abs(current.y - goal.y);
@@ -99,9 +101,6 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
         } else {
           distance = Math.floor(diagonalMultiplier * xDist) + (yDist - xDist);
         }
-        break;
-      case ONE_ONE_ONE:
-        distance = Math.max(Math.abs(xDist), Math.abs(yDist));
         break;
     }
 
@@ -113,7 +112,9 @@ public class AStarSquareEuclideanWalker extends AbstractAStarWalker {
       crossProductTieBreaker = Math.abs(xDist * crossY + crossX * yDist);
     }
 
-    return distance += crossProductTieBreaker * 0.001;
+    distance += crossProductTieBreaker * 0.001;
+
+    return distance;
   }
 
   @Override
